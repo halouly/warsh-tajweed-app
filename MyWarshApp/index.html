@@ -65,7 +65,16 @@
     const TANWEEN=['\u064B','\u064C','\u064D'], ALIF_KHANJARIA='\u0670', HAMZA='ءأإؤئ';
     const QALQ='قطبجد', IDGH_GH='ينمو', IDGH_NO='لر', IKHFA='تثجدذزسشصضطظفقك', MADD='اوىي'+ALIF_KHANJARIA;
 
-    function isLtr(c){return c>='\u0600'&&c<='\u06FF'}
+    // A char is a letter ONLY if it is a base Arabic letter, NOT a mark
+            // Basic range check is not enough. We need to exclude marks.
+    // 064B-065F are marks (Fatha, Damma, Sukoon, etc)
+    // 0670 is superscript Alef
+    // 06D6-06ED are Quranic marks (stops, etc)
+function isLtr(c) {const code = c.charCodeAt(0);
+    if (code >= 0x064B && code <= 0x065F) return false; // Tashkeel
+    if (code === 0x0670) return false; // Dagger Alif
+    if (code >= 0x06D6 && code <= 0x06ED) return false; // Warsh dots/stops
+    return (code >= 0x0600 && code <= 0x06FF);}
     function getDiac(t,i){let d=[];for(let j=i+1;j<t.length;j++){if(isLtr(t[j]))break;d.push(t[j])}return d}
     function has(t,i,c){return getDiac(t,i).includes(c)}
     function nextL(t,i){for(let j=i+1;j<t.length;j++)if(isLtr(t[j]))return{c:t[j],i:j};return null}
