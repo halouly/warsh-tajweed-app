@@ -1,0 +1,10 @@
+{
+  "name": "Warsh Tajweed Trainer",
+  "short_name": "Warsh Trainer",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#FFFEF7",
+  "theme_color": "#8B4513",
+  "icons": []
+}
+

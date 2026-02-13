@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Warsh Tajweed Trainer (Wrapper)</title>
+
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="theme-color" content="#8B4513" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__left">
+      <div class="brand">Warsh Tajweed Trainer</div>
+      <div class="subtitle">Mushaf + looping audio practice</div>
+    </div>
+    <div class="topbar__right">
+      <button id="btnInstall" class="btn btn--ghost" type="button" hidden>Install</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel" aria-label="Trainer controls">
+      <div class="panel__section">
+        <h2 class="h">Audio source</h2>
+        <label class="label" for="audioBaseUrl">Base URL (folder containing MP3 files)</label>
+        <input id="audioBaseUrl" class="input" type="url" placeholder="e.g. ./audio/" />
+        <div class="hint">
+          Files should follow the pattern: <code>SSSAAA.mp3</code> (surah 3 digits + ayah 3 digits), e.g. <code>001001.mp3</code>.
+        </div>
+
+        <label class="label" for="audioExt">Extension</label>
+        <select id="audioExt" class="select">
+          <option value="mp3" selected>mp3</option>
+          <option value="m4a">m4a</option>
+          <option value="ogg">ogg</option>
+        </select>
+      </div>
+
+      <div class="panel__section">
+        <h2 class="h">Range</h2>
+        <div class="row">
+          <div class="col">
+            <label class="label" for="surah">Surah</label>
+            <input id="surah" class="input" type="number" min="1" max="114" value="1" />
+          </div>
+          <div class="col">
+            <label class="label" for="ayahStart">Ayah start</label>
+            <input id="ayahStart" class="input" type="number" min="1" value="1" />
+          </div>
+          <div class="col">
+            <label class="label" for="ayahEnd">Ayah end</label>
+            <input id="ayahEnd" class="input" type="number" min="1" value="7" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <label class="label" for="loops">Loops</label>
+            <input id="loops" class="input" type="number" min="1" value="3" />
+          </div>
+          <div class="col">
+            <label class="label" for="gapMs">Gap (ms)</label>
+            <input id="gapMs" class="input" type="number" min="0" value="600" />
+          </div>
+          <div class="col">
+            <label class="label" for="rate">Speed</label>
+            <select id="rate" class="select">
+              <option value="0.75">0.75×</option>
+              <option value="0.9">0.9×</option>
+              <option value="1" selected>1.0×</option>
+              <option value="1.1">1.1×</option>
+              <option value="1.25">1.25×</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <button id="btnPlay" class="btn" type="button">Play</button>
+          <button id="btnPause" class="btn btn--ghost" type="button">Pause</button>
+          <button id="btnStop" class="btn btn--ghost" type="button">Stop</button>
+        </div>
+
+        <div class="status" id="status">Idle.</div>
+      </div>
+
+      <div class="panel__section">
+        <h2 class="h">Optional: click-to-set verse</h2>
+        <div class="hint">
+          This wrapper will try to detect verse elements inside the mushaf and let you click them to set (surah/ayah).
+          If your mushaf HTML doesn’t expose verse markers in a detectable way, you can still type the range manually.
+        </div>
+        <button id="btnWireClicks" class="btn btn--ghost" type="button">Enable verse clicking</button>
+      </div>
+
+      <audio id="audio" preload="auto"></audio>
+    </section>
+
+    <section class="viewer" aria-label="Warsh mushaf">
+      <iframe
+        id="mushafFrame"
+        title="Warsh Tajweed Mushaf"
+        src="./warsh-tajweed-full-quran.html"
+        loading="lazy"
+      ></iframe>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+  <script>
+    // Basic PWA registration
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+
+    // Install prompt handling
+    let deferredPrompt = null;
+    const btnInstall = document.getElementById('btnInstall');
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      btnInstall.hidden = false;
+    });
+    btnInstall.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      btnInstall.hidden = true;
+    });
+  </script>
+</body>
+</html>
+
