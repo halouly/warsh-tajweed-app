@@ -74,20 +74,23 @@
         button.primary { background: var(--accent); color: #fff; border: none; }
         button.primary:hover { opacity: 0.9; }
         
-        .toggle-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; }
+        .icon-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 5px; }
         input[type=range] { accent-color: var(--accent); cursor: pointer; }
         #status { text-align: center; font-size: 0.8rem; opacity: 0.7; margin-top: 5px; }
 
         /* PAGINATION CONTROLS */
         .page-nav { display: flex; gap: 5px; align-items: center; }
         .page-nav.hidden { display: none; }
+        #custom-chunk-input { width: 50px; display: none; text-align: center; }
+        #custom-chunk-input.show { display: inline-block; }
     </style>
 </head>
 <body>
 
     <header>
         <div class="tools">
-            <button class="toggle-btn" onclick="toggleTheme()" title="Theme">🌗</button>
+            <button class="icon-btn" onclick="toggleTheme()" title="Theme">🌗</button>
+            <button class="icon-btn" onclick="toggleFullScreen()" title="Full Screen">⛶</button>
             <input type="range" min="20" max="60" value="32" style="width:80px" 
                    oninput="document.documentElement.style.setProperty('--sz', this.value+'px')" title="Font Size">
         </div>
@@ -105,12 +108,15 @@
             
             <span style="opacity:0.5">|</span>
 
-            <select id="view-mode" onchange="changeViewMode(this.value)" style="width:110px">
-                <option value="all">All Verses</option>
-                <option value="5">5 Verses</option>
-                <option value="10">10 Verses</option>
-                <option value="20">20 Verses</option>
-            </select>
+            <div style="display:flex; align-items:center; gap:5px;">
+                <select id="view-mode" onchange="changeViewMode(this.value)" style="width:100px">
+                    <option value="all">All Verses</option>
+                    <option value="5">5 Verses</option>
+                    <option value="10">10 Verses</option>
+                    <option value="custom">Custom...</option>
+                </select>
+                <input type="number" id="custom-chunk-input" min="1" max="286" placeholder="#" onchange="setCustomChunk(this.value)">
+            </div>
 
             <div id="page-controls" class="page-nav hidden">
                 <button onclick="changePage(-1)">❮</button>
@@ -225,16 +231,15 @@
     // --- 2. STATE & LOGIC ---
     let state = {
         surah: 1,
-        chunkSize: 'all', // 'all', 5, 10, 20
-        offset: 1, // Starting verse (1-based)
-        data: null // Cache current surah
+        chunkSize: 'all', // 'all', or number
+        offset: 1, 
+        data: null
     };
     
     let playing = false;
     let stopReq = false;
     const aud = new Audio();
     
-    // Init UI
     const sel = document.getElementById('surah-select');
     SURAH_NAMES.forEach((n,i) => {
         let opt = document.createElement('option');
@@ -246,30 +251,47 @@
 
     async function changeSurah(id) {
         state.surah = parseInt(id);
-        state.offset = 1; // Reset to start
+        state.offset = 1; 
         document.getElementById('surah-select').value = state.surah;
-        
         await loadData();
         render();
     }
 
     function changeViewMode(mode) {
-        state.chunkSize = mode === 'all' ? 'all' : parseInt(mode);
-        state.offset = 1; // Reset to start when changing mode
+        const inp = document.getElementById('custom-chunk-input');
         
-        // Toggle Nav Controls
+        if (mode === 'custom') {
+            inp.classList.add('show');
+            inp.focus();
+            // Wait for user input
+        } else {
+            inp.classList.remove('show');
+            state.chunkSize = mode === 'all' ? 'all' : parseInt(mode);
+            state.offset = 1;
+            render();
+        }
+        updateNavVisibility();
+    }
+
+    function setCustomChunk(val) {
+        let n = parseInt(val);
+        if (n && n > 0) {
+            state.chunkSize = n;
+            state.offset = 1;
+            render();
+            updateNavVisibility();
+        }
+    }
+
+    function updateNavVisibility() {
         const nav = document.getElementById('page-controls');
         if(state.chunkSize === 'all') nav.classList.add('hidden');
         else nav.classList.remove('hidden');
-        
-        render();
     }
 
     function changePage(dir) {
         if(state.chunkSize === 'all') return;
-        
         const next = state.offset + (dir * state.chunkSize);
-        // Bounds check
         if(next >= 1 && next <= state.data.verses.length) {
             state.offset = next;
             render();
@@ -296,20 +318,15 @@
         const div = document.getElementById('display');
         let html = "";
         
-        // Header Bismillah (only for 1st page if paginated)
         if (state.surah != 1 && state.surah != 9 && state.offset === 1) {
             const bism = "بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ";
             html += `<div style="text-align:center; margin-bottom:20px; font-size:0.9em; opacity:0.8">${apply(bism, detect(bism))}</div>`;
         }
 
-        // Calculate Range
         let startIdx = state.offset - 1;
         let endIdx = state.chunkSize === 'all' ? state.data.verses.length : Math.min(startIdx + state.chunkSize, state.data.verses.length);
-        
-        // Slice Data
         const chunk = state.data.verses.slice(startIdx, endIdx);
 
-        // Render Chunk
         chunk.forEach((txt, i) => {
             let n = startIdx + i + 1;
             html += `<div class="verse" id="v${n}" onclick="pick(${n})">${apply(txt, detect(txt))} <span class="num">${n}</span></div>`;
@@ -318,12 +335,10 @@
         div.innerHTML = html;
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
-        // Update Controls Info
         if(state.chunkSize !== 'all') {
             document.getElementById('page-info').innerText = `${state.offset}-${endIdx}`;
         }
         
-        // Reset Play Range based on View
         document.getElementById('v_start').value = state.offset;
         document.getElementById('v_end').value = endIdx;
     }
@@ -347,7 +362,6 @@
         playing=true; stopReq=false;
         
         const btn = document.getElementById('play-btn');
-        const loop = document.getElementById('loop-box').checked;
         const sId = String(state.surah).padStart(3,'0');
         const st = document.getElementById('status');
         
@@ -359,13 +373,8 @@
 
             for(let a=start; a<=end; a++) {
                 if(stopReq) break;
-                
-                // If verse is not on screen (pagination), jump to it? 
-                // For simplicity, we only highlight if exists. 
-                // If user plays range outside current page, it plays audio but wont scroll.
                 hl(a); 
                 st.innerText = `Playing Ayah ${a} / ${end}`;
-                
                 aud.src = `https://everyayah.com/data/warsh/warsh_ibrahim_aldosary_128kbps/${sId}${String(a).padStart(3,'0')}.mp3`;
                 
                 try {
@@ -395,6 +404,14 @@
     }
 
     function toggleTheme() { document.body.classList.toggle('dark'); }
+    
+    function toggleFullScreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            if (document.exitFullscreen) document.exitFullscreen();
+        }
+    }
 
     // Init
     changeSurah(1);
