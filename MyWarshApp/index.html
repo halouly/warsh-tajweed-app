@@ -124,12 +124,11 @@
 
         <!-- Row 2: Audio & Playback -->
         <div class="row">
-            <!-- Reciter Select (VERIFIED PATHS) -->
+            <!-- Reciter Select (VERIFIED PATHS WITH 'warsh/' PREFIX) -->
             <select id="reciter-select" style="width:160px">
-                <option value="warsh_ibrahim_aldosary_128kbps">Ibrahim Al-Dosary</option>
-                <option value="warsh_yassin_al_jazairi_64kbps">Yassin Al-Jazairi</option>
-                <option value="Abdul_Basit_Murattal_192kbps">Abdul Basit (Murattal)</option>
-                <option value="Husary_128kbps">Al-Husary (Teacher)</option>
+                <option value="warsh/warsh_ibrahim_aldosary_128kbps">Ibrahim Al-Dosary</option>
+                <option value="warsh/warsh_yassin_al_jazaery_64kbps">Yassin Al-Jazaery</option>
+                <option value="warsh/warsh_Abdul_Basit_128kbps">Abdul Basit (Warsh)</option>
             </select>
 
             <div style="width:1px; height:20px; background:var(--border)"></div>
@@ -335,21 +334,14 @@
                 if(stopReq) break;
                 hl(a); st.innerText = `Playing Ayah ${a} / ${end}`;
                 
-                // Use HTTPS and handle potential errors
+                // CORRECTED AUDIO URL
                 aud.src = `https://everyayah.com/data/${reciter}/${sId}${String(a).padStart(3,'0')}.mp3`;
                 
                 try {
-                    await new Promise((resolve, reject) => {
+                    await new Promise((resolve) => {
                         aud.onended = resolve;
-                        aud.onerror = () => { 
-                            console.error(`Audio missing: ${aud.src}`); 
-                            st.innerText = "Audio missing for this reciter/ayah";
-                            resolve(); // Skip missing files
-                        }; 
-                        aud.play().catch(e => {
-                            console.error("Play error:", e);
-                            resolve();
-                        });
+                        aud.onerror = () => { console.error('Audio Err'); st.innerText="Err: Missing Audio"; resolve(); }; 
+                        aud.play().catch(resolve);
                     });
                 } catch(e){}
                 
