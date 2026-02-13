@@ -1,4 +1,4 @@
-// --- COMPLETE WARSH ENGINE (FROM YOUR FILE) ---
+// --- WARSH ENGINE ---
 
 // 1. Constants
 const SUKUN = '\u0652';
@@ -107,7 +107,7 @@ function detect(t) {
             else if (n && (has(t, n.i, SUKUN) || has(t, n.i, SHADDA))) a.push({ s: i, e: i + 1, cls: 'tj-madd' });
         }
 
-        // Ra (Basic Warsh Rules)
+        // Ra
         if (c === 'ر') {
             if (has(t, i, FATHA) || has(t, i, DAMMA)) a.push({ s: i, e: i + 1, cls: 'tj-ra-heavy' });
             else if (has(t, i, KASRA)) a.push({ s: i, e: i + 1, cls: 'tj-ra-light' });
@@ -116,18 +116,30 @@ function detect(t) {
     return a;
 }
 
+// 4. APPLY FUNCTION (Corrected)
 function apply(text, rules) {
     if (!rules || rules.length === 0) return text;
-    let out = '';
-    let last = 0;
-    rules.sort((a, b) => a.s - b.s);
+    let charClasses = new Array(text.length).fill(null);
+    
     rules.forEach(r => {
-        if (r.s < last) return;
-        out += text.substring(last, r.s);
-        out += `<span class="${r.cls}">${text.substring(r.s, r.e)}</span>`;
-        last = r.e;
+        for (let i = r.s; i < r.e; i++) {
+            if (!charClasses[i]) charClasses[i] = r.cls;
+        }
     });
-    out += text.substring(last);
+
+    let out = '';
+    let currentClass = null;
+
+    for (let i = 0; i < text.length; i++) {
+        let cls = charClasses[i];
+        if (cls !== currentClass) {
+            if (currentClass) out += '</span>';
+            if (cls) out += `<span class="${cls}">`;
+            currentClass = cls;
+        }
+        out += text[i];
+    }
+    if (currentClass) out += '</span>';
     return out;
 }
 
