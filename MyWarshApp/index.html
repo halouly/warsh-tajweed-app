@@ -3,41 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Warsh App - Live Data</title>
+    <title>Warsh App - Fixed Colors</title>
+    <!-- Use a good Quran font if available, fallback to system -->
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* 1. TAJWEED COLORS */
-        .tj-ghunnah { color: #16a34a !important; }
-        .tj-madd    { color: #ff0000 !important; }
-        .tj-qalqalah{ color: #0000ff !important; }
-        .tj-ra-heavy{ color: #00008B !important; font-weight: bold; }
-        .tj-ra-light{ color: #0ea5e9 !important; }
-        .tj-silent  { color: #999 !important; }
+        /* 1. ORIGINAL TAJWEED COLORS */
+        .tj-ghunnah { color: #159a2f !important; } /* Green */
+        .tj-madd    { color: #d62222 !important; } /* Red */
+        .tj-qalqalah{ color: #0084d6 !important; } /* Blue */
+        .tj-ra-heavy{ color: #1e3a8a !important; font-weight: bold; } /* Dark Blue */
+        .tj-ra-light{ color: #0ea5e9 !important; } /* Cyan */
+        .tj-silent  { color: #a3a3a3 !important; } /* Grey */
 
         /* 2. UI STYLES */
         :root { --sz: 32px; }
-        body { font-family: 'Amiri', system-ui; background: #FFFEF7; color: #333; margin:0; padding-bottom:150px; }
-        #display { padding: 20px; max-width: 900px; margin: 0 auto; line-height: 2.6; text-align: justify; }
+        body { font-family: 'Amiri', 'Uthmanic', serif; background: #fffcf2; color: #000; margin:0; padding-bottom:150px; }
+        #display { padding: 20px; max-width: 900px; margin: 0 auto; line-height: 2.8; text-align: justify; }
         
-        .verse { display: inline; font-size: var(--sz); cursor: pointer; padding: 4px 0; margin: 0 3px; border-bottom: 1px dashed #eee; }
-        .verse:hover { background: #f0f0f0; }
-        .verse.active { background: #ffeebb; box-shadow: 0 0 0 2px gold; border-radius: 4px; }
-        .num { font-size: 0.6em; color: brown; border: 1px solid brown; border-radius: 50%; padding: 0 6px; margin: 0 5px; vertical-align: middle; }
+        .verse { display: inline; font-size: var(--sz); cursor: pointer; padding: 4px 0; margin: 0 3px; border-bottom: 1px dashed #e5e5e5; }
+        .verse:hover { background: #f9f9f9; }
+        .verse.active { background: #fff7d1; box-shadow: 0 0 0 3px #fff7d1; border-radius: 6px; }
+        .num { font-size: 0.6em; color: #8b4513; border: 1px solid #8b4513; border-radius: 50%; padding: 0 8px; margin: 0 5px; vertical-align: middle; display: inline-block; }
 
         #panel {
             position: fixed; bottom: 0; left: 0; right: 0;
-            background: #fff; border-top: 5px solid brown;
+            background: #fff; border-top: 4px solid #8b4513;
             padding: 15px; z-index: 1000; direction: ltr;
             display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
+            box-shadow: 0 -5px 25px rgba(0,0,0,0.1);
         }
         input, button { padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; }
-        button { background: brown; color: white; border: none; font-weight: bold; cursor: pointer; }
-        button:hover { background: #800000; }
+        button { background: #8b4513; color: white; border: none; font-weight: bold; cursor: pointer; }
+        button:hover { background: #683209; }
     </style>
 </head>
 <body>
 
-    <div id="display">Loading...</div>
+    <div id="display" style="text-align:center; padding-top:50px">Loading...</div>
 
     <div id="panel">
         <input type="number" id="s" value="1" min="1" max="114" style="width:60px" title="Surah Number">
@@ -60,73 +62,108 @@
     </div>
 
     <script>
-    // --- 1. ENGINE LOGIC (Embedded to prevent sync issues) ---
-    const SUKUN='\u0652', SHADDA='\u0651', FATHA='\u064E', DAMMA='\u064F', KASRA='\u0650';
-    const TANWEEN=['\u064B','\u064C','\u064D'], ALIF_KHANJARIA='\u0670', HAMZA='ءأإؤئ';
-    const QALQ='قطبجد', IDGH_GH='ينمو', IDGH_NO='لر', IKHFA='تثجدذزسشصضطظفقك', MADD='اوىي'+ALIF_KHANJARIA;
+    // --- 1. TAJWEED ENGINE (From Original File) ---
+    const SUKUN='\u0652',SHADDA='\u0651',FATHA='\u064E',DAMMA='\u064F',KASRA='\u0650';
+    const TANWEEN=['\u064B','\u064C','\u064D'];
+    const QALQ='قطبجد',IDGH_GH='ينمو',IDGH_NO='لر',IKHFA='تثجدذزسشصضطظفقك';
+    const MADD='اوىيآ',HAMZA='ءأإؤئ';
 
-    // A char is a letter ONLY if it is a base Arabic letter, NOT a mark
-            // Basic range check is not enough. We need to exclude marks.
-    // 064B-065F are marks (Fatha, Damma, Sukoon, etc)
-    // 0670 is superscript Alef
-    // 06D6-06ED are Quranic marks (stops, etc)
-function isLtr(c) {const code = c.charCodeAt(0);
-    if (code >= 0x064B && code <= 0x065F) return false; // Tashkeel
-    if (code === 0x0670) return false; // Dagger Alif
-    if (code >= 0x06D6 && code <= 0x06ED) return false; // Warsh dots/stops
-    return (code >= 0x0600 && code <= 0x06FF);}
-    function getDiac(t,i){let d=[];for(let j=i+1;j<t.length;j++){if(isLtr(t[j]))break;d.push(t[j])}return d}
+    // Original Helpers
+    function isDiac(c){if(!c)return false;let x=c.charCodeAt(0);return(x>=0x064B&&x<=0x0652)||(x>=0x0653&&x<=0x0655)||x===0x0670||(x>=0x06D6&&x<=0x06ED)}
+    function isLtr(c){if(!c)return false;let x=c.charCodeAt(0);return(x>=0x0621&&x<=0x064A)||x===0x0671}
+    function getDiac(t,i){let d=[];for(let j=i+1;j<t.length&&isDiac(t[j]);j++)d.push(t[j]);return d}
     function has(t,i,c){return getDiac(t,i).includes(c)}
     function nextL(t,i){for(let j=i+1;j<t.length;j++)if(isLtr(t[j]))return{c:t[j],i:j};return null}
     function prevL(t,i){for(let j=i-1;j>=0;j--)if(isLtr(t[j]))return{c:t[j],i:j};return null}
-    function endW(t,i){const n=nextL(t,i);return !n||t.slice(i+1,n.i).includes(' ')}
+    function endW(t,i){let j=i+1;while(j<t.length&&isDiac(t[j]))j++;return j>=t.length||t[j]===' '}
+    
+    // NEW HELPER: Grab the letter AND its marks
+    function getEnd(t, i) {
+        let j = i + 1;
+        while(j < t.length && isDiac(t[j])) j++;
+        return j;
+    }
 
-    function detect(t) {
-        let a=[];
+    function detect(t){
+        const a=[];
         for(let i=0;i<t.length;i++){
-            const c=t[i]; if(!isLtr(c))continue;
-            const n=nextL(t,i), p=prevL(t,i), end=endW(t,i);
+            const c=t[i];
+            if(!isLtr(c)) continue; // Process letters only
             
-            if(QALQ.includes(c)&&(has(t,i,SUKUN)||(end&&!has(t,i,SHADDA)))) a.push({s:i,e:i+1,cls:'tj-qalqalah'});
-            if(c==='ن'&&(has(t,i,SUKUN)||end)&&n&&!has(t,i,SHADDA)){
-                if(IDGH_GH.includes(n.c)){a.push({s:i,e:i+1,cls:'tj-silent'});a.push({s:n.i,e:n.i+1,cls:'tj-ghunnah'})}
-                else if(IDGH_NO.includes(n.c))a.push({s:i,e:i+1,cls:'tj-silent'});
-                else if(n.c==='ب'||IKHFA.includes(n.c))a.push({s:i,e:i+1,cls:'tj-ghunnah'});
+            const n=nextL(t,i), p=prevL(t,i), end=endW(t,i);
+            const rangeEnd = getEnd(t, i); // Include attached marks
+
+            // Qalqalah
+            if(QALQ.includes(c)&&(has(t,i,SUKUN)||(end&&!has(t,i,SHADDA))))
+                a.push({s:i,e:rangeEnd,cls:'tj-qalqalah'});
+            
+            // Noon sakinah
+            else if(c==='ن'&&(has(t,i,SUKUN)||end)&&n&&!has(t,i,SHADDA)){
+                if(IDGH_GH.includes(n.c)){
+                    a.push({s:i,e:rangeEnd,cls:'tj-silent'});
+                    // Note: We don't color next char here to avoid overlap issues, simplifed logic
+                }
+                else if(IDGH_NO.includes(n.c)) a.push({s:i,e:rangeEnd,cls:'tj-silent'});
+                else if(n.c==='ب') a.push({s:i,e:rangeEnd,cls:'tj-ghunnah'});
+                else if(IKHFA.includes(n.c)) a.push({s:i,e:rangeEnd,cls:'tj-ghunnah'});
             }
+            
+            // Meem sakinah
+            else if(c==='م'&&(has(t,i,SUKUN)||end)&&n){
+                if(n.c==='م'){ a.push({s:i,e:rangeEnd,cls:'tj-silent'}); }
+                else if(n.c==='ب') a.push({s:i,e:rangeEnd,cls:'tj-ghunnah'});
+            }
+            
+            // Ghunnah mushaddad
+            else if((c==='م'||c==='ن')&&has(t,i,SHADDA)) a.push({s:i,e:rangeEnd,cls:'tj-ghunnah'});
+            
+            // Lam shamsiyyah
+            else if(c==='ل'&&p&&(p.c==='ا'||p.c==='\u0671')&&n&&'تثدذرزسشصضطظلن'.includes(n.c))
+                a.push({s:i,e:rangeEnd,cls:'tj-silent'});
+            
+            // Madd
+            else if(MADD.includes(c)){
+                if(n&&HAMZA.includes(n.c)) a.push({s:i,e:rangeEnd,cls:'tj-madd'});
+                else if(n&&(has(t,n.i,SUKUN)||has(t,n.i,SHADDA))) a.push({s:i,e:rangeEnd,cls:'tj-madd'});
+                else if(c==='ا'&&p&&has(t,p.i,FATHA)) a.push({s:i,e:rangeEnd,cls:'tj-madd'});
+            }
+            
+            // Ra
+            else if(c==='ر'){
+                if(has(t,i,FATHA)||has(t,i,DAMMA)) a.push({s:i,e:rangeEnd,cls:'tj-ra-heavy'});
+                else if(has(t,i,KASRA)) a.push({s:i,e:rangeEnd,cls:'tj-ra-light'});
+                else if(has(t,i,SUKUN)||end){
+                    if(p&&has(t,p.i,KASRA)) a.push({s:i,e:rangeEnd,cls:'tj-ra-light'});
+                    else if(p&&(has(t,p.i,FATHA)||has(t,p.i,DAMMA))) a.push({s:i,e:rangeEnd,cls:'tj-ra-heavy'});
+                }
+            }
+
+            // Tanween (Special Case: Attached to letter but logically separate)
             let tw=getDiac(t,i).find(x=>TANWEEN.includes(x));
-            if(tw&&n&&(IDGH_GH.includes(n.c)||IKHFA.includes(n.c)||n.c==='ب')) a.push({s:i,e:i+1,cls:'tj-ghunnah'});
-            if(c==='م'&&(has(t,i,SUKUN)||end)&&n){
-                if(n.c==='م'){a.push({s:i,e:i+1,cls:'tj-silent'});a.push({s:n.i,e:n.i+1,cls:'tj-ghunnah'})}
-                else if(n.c==='ب')a.push({s:i,e:i+1,cls:'tj-ghunnah'});
-            }
-            if((c==='م'||c==='ن')&&has(t,i,SHADDA))a.push({s:i,e:i+1,cls:'tj-ghunnah'});
-            if(c==='ل'&&p&&(p.c==='ا'||p.c==='\u0671')&&n&&'تثدذرزسشصضطظلن'.includes(n.c))a.push({s:i,e:i+1,cls:'tj-silent'});
-            if(MADD.includes(c)){
-                if(n&&(HAMZA.includes(n.c)||has(t,n.i,SUKUN)||has(t,n.i,SHADDA)))a.push({s:i,e:i+1,cls:'tj-madd'});
-            }
-            if(c==='ر'){
-                if(has(t,i,FATHA)||has(t,i,DAMMA))a.push({s:i,e:i+1,cls:'tj-ra-heavy'});
-                else if(has(t,i,KASRA))a.push({s:i,e:i+1,cls:'tj-ra-light'});
-            }
+            if(tw&&n&&(IDGH_GH.includes(n.c)||IKHFA.includes(n.c)||n.c==='ب'))
+                a.push({s:i,e:rangeEnd,cls:'tj-ghunnah'});
         }
         return a;
     }
 
-    function apply(text, rules) {
-        if(!rules.length)return text;
-        let map=new Array(text.length).fill(null);
-        rules.forEach(r=>{for(let i=r.s;i<r.e;i++)if(!map[i])map[i]=r.cls});
-        let out='', curr=null;
-        for(let i=0;i<text.length;i++){
-            if(map[i]!==curr){
-                if(curr)out+='</span>';
-                if(map[i])out+=`<span class="${map[i]}">`;
-                curr=map[i];
+    function apply(t,ann){
+        const m=new Map();
+        // Fill the map for every index in the range
+        for(const x of ann) for(let i=x.s;i<x.e;i++) m.set(i,x);
+        
+        let h='',cls=null,open=false;
+        for(let i=0;i<t.length;i++){
+            const x=m.get(i),nc=x?x.cls:null;
+            if(nc!==cls){
+                if(open)h+='</span>';
+                if(nc){h+=`<span class="${nc}">`;open=true}
+                else open=false;
+                cls=nc;
             }
-            out+=text[i];
+            h+=t[i];
         }
-        if(curr)out+='</span>';
-        return out;
+        if(open)h+='</span>';
+        return h;
     }
 
     // --- 2. APP LOGIC ---
@@ -140,31 +177,25 @@ function isLtr(c) {const code = c.charCodeAt(0);
         const div = document.getElementById('display');
         
         try {
-            // === FETCH FROM DATA FOLDER ===
-            // Note: Since this file is in MyWarshApp/, and data is in MyWarshApp/data/
-            // The path is simply 'data/X.json'
             const res = await fetch('data/' + s + '.json');
-            
             if(!res.ok) throw new Error("File not found: data/" + s + ".json");
             const data = await res.json();
             
             let html = '<h2 style="text-align:center">Surah ' + data.name_ar + '</h2>';
             
-            // Bismillah logic
             if (s != 1 && s != 9) {
                 const bism = "بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ";
                 html += '<div style="text-align:center; margin-bottom:15px">' + apply(bism, detect(bism)) + '</div>';
             }
 
-            // Loop through verses from JSON
             data.verses.forEach((txt, i) => {
                 const n = i + 1;
+                // Fix: Normalize ALEF variants if needed, but keeping raw text is safer for display
                 const colored = apply(txt, detect(txt));
                 html += `<div class="verse" id="v${n}" onclick="pick(${n})">${colored} <span class="num">${n}</span></div>`;
             });
             div.innerHTML = html;
             
-            // Reset range
             document.getElementById('v_start').value = 1;
             document.getElementById('v_end').value = data.verses.length;
             
