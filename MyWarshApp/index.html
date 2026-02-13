@@ -3,130 +3,225 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Warsh App</title>
+    <title>Warsh Reader Pro</title>
     <style>
-        /* 1. TAJWEED COLORS (CRITICAL) */
-        .tj-ghunnah { color: #16a34a !important; }
-        .tj-madd    { color: #ff0000 !important; }
-        .tj-qalqalah{ color: #0000ff !important; }
-        .tj-ra-heavy{ color: #00008B !important; font-weight: bold; }
-        .tj-ra-light{ color: #0ea5e9 !important; }
-        .tj-silent  { color: #999999 !important; }
-
-        /* 2. LAYOUT */
-        :root { --f: 32px; }
-        body { font-family: 'Amiri', system-ui; background: #FFFEF7; color: #333; margin: 0; padding-bottom: 120px; }
-        #quran { padding: 20px; direction: rtl; max-width: 800px; margin: 0 auto; line-height: 2.4; }
-        .verse { font-size: var(--f); display: inline; cursor: pointer; padding: 2px 0; margin: 0 4px; }
-        .verse:hover { background: #eee; }
-        .verse.active { background: #ffeebb; box-shadow: 0 0 0 2px #eeca55; border-radius: 4px; }
-        .num { font-size: 0.6em; color: brown; border: 1px solid brown; border-radius: 50%; padding: 0 5px; margin: 0 5px; }
+        :root { --f-size: 32px; --bg: #FFFEF7; --ink: #2C1810; }
+        body { font-family: system-ui; background: var(--bg); color: var(--ink); margin: 0; padding-bottom: 150px; }
         
-        #controls { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; padding: 10px; border-top: 3px solid brown; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; z-index: 99; }
-        input, button { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        button { background: brown; color: white; border: none; font-weight: bold; cursor: pointer; }
-        #status { width: 100%; text-align: center; font-size: 12px; color: #555; }
-    </style>
+        /* THE QURAN TEXT */
+        #quran-container { 
+            direction: rtl; 
+            padding: 20px; 
+            max-width: 900px; 
+            margin: 0 auto; 
+        }
+        .verse { 
+            display: inline-block; 
+            font-size: var(--f-size); 
+            line-height: 2.2; 
+            padding: 5px; 
+            border-radius: 6px;
+            cursor: pointer;
+            position: relative;
+        }
+        .verse:hover { background: rgba(0,0,0,0.05); }
+        .verse.active { 
+            background: rgba(255, 215, 0, 0.3); 
+            box-shadow: 0 0 0 2px #d4a017;
+        }
+        .verse-num { 
+            color: #8B4513; font-size: 0.6em; border: 1px solid #8B4513; 
+            border-radius: 50%; padding: 2px 6px; margin: 0 5px; 
+        }
+        .bismillah { text-align: center; font-size: var(--f-size); margin-bottom: 30px; font-family: 'Amiri', serif; }
 
-    <!-- LOAD ENGINE FIRST -->
-    <script src="engine.js"></script>
+        /* CONTROLS */
+        .panel {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: #fff; border-top: 4px solid #8B4513;
+            padding: 10px; display: flex; gap: 10px; flex-wrap: wrap;
+            justify-content: center; box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+        .group { background: #f4f4f4; padding: 5px 10px; border-radius: 8px; border: 1px solid #ddd; }
+        label { font-size: 11px; display: block; color: #666; font-weight: bold; }
+        input, select { padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
+        button { background: #8B4513; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+        .status { width: 100%; text-align: center; font-size: 12px; color: #8B4513; margin-top: 5px; }
+        
+        /* Tajweed Colors (Must match your engine's classes) */
+        .tj-madd { color: #DC143C; }
+        .tj-ghunnah { color: #228B22; }
+        .tj-qalqalah { color: #4682B4; }
+        .tj-silent { color: #999; }
+    </style>
 </head>
 <body>
 
-    <div id="quran"><div style="text-align:center; margin-top:50px;">Loading...</div></div>
-
-    <div id="controls">
-        <input type="number" id="s" value="1" min="1" max="114" style="width:50px">
-        <button onclick="load()">Go</button>
-        <div style="width:10px"></div>
-        <input type="number" id="start" value="1" style="width:50px">
-        <input type="number" id="end" value="7" style="width:50px">
-        <button onclick="play()">▶ Play</button>
-        <button onclick="stop()" style="background:#555">Stop</button>
-        
-        <div style="display:flex; align-items:center; gap:5px">
-            <label>Size:</label>
-            <input type="range" min="20" max="80" value="32" oninput="document.documentElement.style.setProperty('--f', this.value+'px')">
-        </div>
-        <div id="status">Ready</div>
+    <div id="quran-container">
+        <div style="text-align:center; padding:50px;">Load a Surah to start</div>
     </div>
-    
+
+    <div class="panel">
+        <div class="group">
+            <label>Surah</label>
+            <input type="number" id="inp-surah" min="1" max="114" value="1">
+            <button onclick="loadSurah()">Go</button>
+        </div>
+        
+        <div class="group">
+            <label>Range (Ayah)</label>
+            <div style="display:flex; gap:5px">
+                <input type="number" id="inp-start" value="1" style="width:50px">
+                <input type="number" id="inp-end" value="7" style="width:50px">
+            </div>
+        </div>
+        
+        <div class="group">
+            <label>Loops</label>
+            <input type="number" id="inp-loops" value="3" style="width:40px">
+        </div>
+
+        <div class="group">
+            <label>Text Size</label>
+            <input type="range" min="20" max="80" value="32" oninput="document.documentElement.style.setProperty('--f-size', this.value+'px')">
+        </div>
+        
+        <div class="group" style="display:flex; align-items:flex-end; gap:5px">
+            <button onclick="play()">▶ PLAY</button>
+            <button onclick="stop()" style="background:#fff; color:#8B4513; border:1px solid #8B4513">STOP</button>
+        </div>
+        
+        <div class="status" id="status">Ready</div>
+    </div>
+
     <audio id="player"></audio>
 
+    <!-- Load the engine extracted by Python -->
+    <script src="engine.js"></script> 
+    
     <script>
-        // VERIFIED AUDIO URL
-        const baseUrl = "https://everyayah.com/data/warsh/warsh_ibrahim_aldosary_128kbps/";
+        // APP LOGIC
+        let currentData = null;
         let isPlaying = false;
         let stopReq = false;
-
-        async function load() {
-            const id = document.getElementById('s').value;
+        
+        // Load Surah
+        async function loadSurah() {
+            const id = document.getElementById('inp-surah').value;
+            const container = document.getElementById('quran-container');
+            
+            container.innerHTML = '<div style="text-align:center">Loading...</div>';
+            
             try {
-                const res = await fetch('data/' + id + '.json');
-                if(!res.ok) throw new Error("Surah not found. Check data folder.");
-                const data = await res.json();
+                const res = await fetch(`data/${id}.json`);
+                if(!res.ok) throw new Error("Surah file not found");
                 
-                let html = '<h2 style="text-align:center">Surah ' + data.name_ar + '</h2>';
+                currentData = await res.json();
+                render(currentData);
+            } catch(e) {
+                container.innerHTML = `<div style="color:red">Error: ${e.message}. Did you run setup.py?</div>`;
+            }
+        }
+        
+        function render(data) {
+            let html = `<h1 style="text-align:center">سورة ${data.name_ar}</h1>`;
+            
+            // Add Bismillah (except for Surah 9)
+            if(data.id !== 9) {
+                 const bism = "بِسْمِ اِ۬للَّهِ اِ۬لرَّحْمَٰنِ اِ۬لرَّحِيمِ";
+                 // Attempt to use engine if available, else plain
+                 let bismHtml = (window.detect && window.apply) ? apply(bism, detect(bism)) : bism;
+                 html += `<div class="bismillah">${bismHtml}</div>`;
+            }
+            
+            data.verses.forEach((txt, i) => {
+                const num = i + 1;
+                // Tajweed processing
+                let content = (window.detect && window.apply) ? apply(txt, detect(txt)) : txt;
                 
-                if(data.id !== 9) {
-                    const bism = "بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ";
-                    // Apply engine to Bismillah
-                    html += '<div style="text-align:center; margin-bottom:20px">' + apply(bism, detect(bism)) + '</div>';
-                }
-                
-                data.verses.forEach((txt, i) => {
-                    const n = i + 1;
-                    // Apply engine to Verse
-                    const content = apply(txt, detect(txt));
-                    html += '<div class="verse" id="v'+n+'" onclick="pick('+n+')">' + content + ' <span class="num">' + n + '</span></div>';
-                });
-                document.getElementById('quran').innerHTML = html;
-            } catch(e) { document.getElementById('quran').innerHTML = e.message; }
+                html += `<div class="verse" id="ayah-${num}" onclick="setRange(${num})">
+                            ${content} <span class="verse-num">${num}</span>
+                         </div>`;
+            });
+            
+            document.getElementById('quran-container').innerHTML = html;
         }
-
-        function pick(n) {
-            document.getElementById('start').value = n;
-            document.getElementById('end').value = n;
-            hl(n);
+        
+        function setRange(n) {
+            document.getElementById('inp-start').value = n;
+            document.getElementById('inp-end').value = n;
+            highlight(n);
         }
-
-        function hl(n) {
-            document.querySelectorAll('.active').forEach(e => e.classList.remove('active'));
-            const el = document.getElementById('v'+n);
-            if(el) { el.classList.add('active'); el.scrollIntoView({behavior:'smooth', block:'center'}); }
+        
+        function highlight(n) {
+            document.querySelectorAll('.verse.active').forEach(e => e.classList.remove('active'));
+            const el = document.getElementById(`ayah-${n}`);
+            if(el) {
+                el.classList.add('active');
+                el.scrollIntoView({behavior:'smooth', block:'center'});
+            }
         }
-
+        
+        // Playback Logic
         async function play() {
-            if(isPlaying) return; isPlaying = true; stopReq = false;
-            const s = document.getElementById('s').value.padStart(3, '0');
-            const start = parseInt(document.getElementById('start').value);
-            const end = parseInt(document.getElementById('end').value);
+            if(isPlaying) return;
+            isPlaying = true; stopReq = false;
+            
+            const surah = parseInt(document.getElementById('inp-surah').value);
+            const start = parseInt(document.getElementById('inp-start').value);
+            const end = parseInt(document.getElementById('inp-end').value);
+            const loops = parseInt(document.getElementById('inp-loops').value);
             const player = document.getElementById('player');
             const status = document.getElementById('status');
-
-            for(let a=start; a<=end; a++) {
+            
+            // Base URL for audio
+            const baseUrl = "./audio/"; 
+            
+            for(let l=1; l<=loops; l++) {
                 if(stopReq) break;
-                hl(a);
-                status.innerText = 'Playing Ayah ' + a;
-                player.src = baseUrl + s + String(a).padStart(3,'0') + '.mp3';
                 
-                try {
-                    await new Promise(r => {
-                        player.onended = r;
-                        player.onerror = () => { console.log('Err', player.src); r(); };
-                        player.play().catch(r);
-                    });
-                } catch(e) {}
-                
-                if(!stopReq) await new Promise(r => setTimeout(r, 500));
+                for(let a=start; a<=end; a++) {
+                    if(stopReq) break;
+                    
+                    highlight(a);
+                    status.innerText = `Loop ${l}/${loops} • Ayah ${a}`;
+                    
+                    // Format: 001001.mp3
+                    const sStr = String(surah).padStart(3, '0');
+                    const aStr = String(a).padStart(3, '0');
+                    const url = `${baseUrl}${sStr}${aStr}.mp3`;
+                    
+                    try {
+                        await playFile(player, url);
+                    } catch(e) {
+                        console.log("Audio skipped", url);
+                    }
+                    
+                    await new Promise(r => setTimeout(r, 500));
+                }
             }
-            isPlaying = false; status.innerText = "Done";
+            isPlaying = false;
+            status.innerText = "Done";
+        }
+        
+        function playFile(audio, url) {
+            return new Promise((resolve, reject) => {
+                audio.src = url;
+                audio.onended = resolve;
+                audio.onerror = resolve; // Continue on error
+                audio.play().catch(resolve);
+            });
+        }
+        
+        function stop() {
+            stopReq = true;
+            document.getElementById('player').pause();
+            isPlaying = false;
         }
 
-        function stop() { stopReq = true; document.getElementById('player').pause(); isPlaying = false; }
-        
-        // Auto Load
-        load();
+        // Init
+        loadSurah();
     </script>
 </body>
 </html>
