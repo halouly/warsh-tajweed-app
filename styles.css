@@ -121,3 +121,10 @@ body{
   .viewer{min-height: 70vh}
 }
 
+/* Tajweed Colors */
+.tj-ghunnah { color: #16a34a; }  /* Green */
+.tj-madd    { color: #dc2626; }  /* Red */
+.tj-qalqalah{ color: #2563eb; }  /* Blue */
+.tj-silent  { color: #9ca3af; }  /* Grey */
+.tj-ra-heavy{ color: #1e3a8a; font-weight: bold; } /* Dark Blue */
+.tj-ra-light{ color: #0ea5e9; }  /* Light Blue */
