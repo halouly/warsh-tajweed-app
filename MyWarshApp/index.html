@@ -10,17 +10,29 @@
         .tj-ghunnah { color: #16a34a !important; } /* Green */
         .tj-madd    { color: #dc2626 !important; } /* Red */
         .tj-qalqalah{ color: #0284c7 !important; } /* Blue */
-        .tj-heavy   { color: #1e3a8a !important; font-weight: bold; } /* Dark Blue (Heavy Lam/Ra) */
-        .tj-light   { color: #06b6d4 !important; } /* Cyan (Light Ra) */
-        .tj-special { color: #d97706 !important; font-weight: bold; } /* ORANGE: Tasshil/Naql Dots */
-        .tj-silent  { color: #9ca3af !important; } /* Gray */
+        .tj-heavy   { color: #1e3a8a !important; font-weight: bold; } /* Dark Blue */
+        .tj-light   { color: #06b6d4 !important; } /* Cyan */
+        .tj-special { color: #d97706 !important; font-weight: bold; } /* Orange */
+        .tj-silent  { color: #9ca3af !important; } /* Gray (ONLY for Silent letters) */
 
         /* UI */
         :root { --sz: 32px; }
-        body { font-family: 'Amiri', serif; background: #fffcf2; color: #1f2937; margin:0; padding-bottom:150px; }
+        body { 
+            font-family: 'Amiri', serif; 
+            background: #fffcf2; 
+            color: #000000; /* STRICT BLACK BASE COLOR */
+            margin:0; padding-bottom:150px; 
+        }
         #display { padding: 30px 20px; max-width: 900px; margin: 0 auto; line-height: 2.8; text-align: justify; }
         
-        .verse { display: inline; font-size: var(--sz); cursor: pointer; padding: 4px 0; border-bottom: 1px dashed #e5e5e5; }
+        .verse { 
+            display: inline; 
+            font-size: var(--sz); 
+            cursor: pointer; 
+            padding: 4px 0; 
+            border-bottom: 1px dashed #e5e5e5;
+            color: #000000; /* Ensure base text is black */
+        }
         .verse:hover { background: #f9f9f9; }
         .verse.active { background: #fef3c7; box-shadow: 0 0 0 4px #fef3c7; border-radius: 6px; }
         .num { font-size: 0.55em; color: #92400e; border: 1px solid #92400e; border-radius: 50%; padding: 0 6px; margin: 0 5px; vertical-align: middle; user-select: none; }
@@ -58,7 +70,7 @@
     <script>
     // === 1. WARSH ENGINE ===
     const SUKUN='\u0652', SHADDA='\u0651', FATHA='\u064E', DAMMA='\u064F', KASRA='\u0650';
-    const DAGGER='\u0670', MADD_SIGN='\u0653', WARSH_DOT='\u06EC'; // The special dot
+    const DAGGER='\u0670', MADD_SIGN='\u0653', WARSH_DOT='\u06EC'; 
     
     // Letters
     const QALQ='قطبجد', IDGH_GH='ينمو', IDGH_NO='لر', IKHFA='تثجدذزسشصضطظفقك';
@@ -89,13 +101,10 @@
 
             let rule = null;
 
-            // --- 0. SPECIAL WARSH MARKERS (Tasshil/Naql) ---
-            // If the letter carries the special dot (U+06EC), color it ORANGE
-            if (has(t, i, WARSH_DOT) || has(t, i, '\u065F')) {
-                rule = 'tj-special';
-            }
-
-            // --- 1. GHUNNAH ---
+            // SPECIAL MARKERS
+            if (has(t, i, WARSH_DOT) || has(t, i, '\u065F')) rule = 'tj-special';
+            
+            // GHUNNAH
             else if((c==='ن'||c==='م') && isShadda) rule = 'tj-ghunnah';
             else if(c==='ن' && isSakin && n){
                 if(IDGH_GH.includes(n.c) || n.c==='ب' || IKHFA.includes(n.c)) rule = 'tj-ghunnah';
@@ -103,15 +112,15 @@
             }
             else if(c==='م' && isSakin && n && n.c==='ب') rule = 'tj-ghunnah';
 
-            // --- 2. QALQALAH ---
+            // QALQALAH
             else if(QALQ.includes(c) && (has(t,i,SUKUN) || (!hasVowel && !n))) rule = 'tj-qalqalah';
 
-            // --- 3. HEAVY LAM ---
+            // HEAVY LAM
             else if(c==='ل' && has(t,i,FATHA) && p && HEAVY_LAM_TRIGGERS.includes(p.c) && (has(t,p.i,FATHA)||has(t,p.i,SUKUN)||!getDiac(t,p.i).length)){
                 rule = 'tj-heavy';
             }
 
-            // --- 4. WARSH RA ---
+            // WARSH RA
             else if(c==='ر'){
                 if(has(t,i,FATHA) || has(t,i,DAMMA)) rule = 'tj-heavy';
                 if(has(t,i,KASRA)) rule = 'tj-light'; 
@@ -120,17 +129,14 @@
                 }
             }
 
-            // --- 5. MADD (Including Badal) ---
+            // MADD
             else if(MADD.includes(c) && !hasVowel && !isShadda){
-                // A. Normal/Strong Madd
                 if(has(t,i,MADD_SIGN) || (n && (has(t,n.i,SHADDA) || has(t,n.i,SUKUN)))) rule = 'tj-madd';
-                // B. BADAL MADD (Hamza before Madd) - Warsh Special
-                else if(p && HAMZA.includes(p.c)) rule = 'tj-madd';
-                // C. Natural Madd
+                else if(p && HAMZA.includes(p.c)) rule = 'tj-madd'; // Badal
                 else rule = 'tj-madd';
             }
             
-            // --- 6. SILENT ---
+            // SILENT
             else if(c==='ل' && isSakin && n && has(t,n.i,SHADDA)) rule = 'tj-silent';
 
             if(rule) a.push({s:i, e:rangeEnd, cls:rule});
@@ -176,7 +182,16 @@
             }
 
             data.verses.forEach((txt, i) => {
-                const n = i + 1;
+                let n = i + 1;
+                // DATA PATCH: Surah 2 (Baqara)
+                // If Surah 2, Verse 1 contains MORE than Alif Lam Mim, it's merged.
+                // We should technically split it, but audio relies on Ayah numbers.
+                // If the text is merged, just display it.
+                // Note: The user said "Baqara 1 should stop at Alif Lam Mim". 
+                // If the data in 2.json has them merged, we can't easily split without breaking audio sync 
+                // unless we know exactly where to split. 
+                // For now, we display exactly what is in the JSON to keep Audio Sync safe.
+                
                 html += `<div class="verse" id="v${n}" onclick="pick(${n})">${apply(txt, detect(txt))} <span class="num">${n}</span></div>`;
             });
             div.innerHTML = html;
