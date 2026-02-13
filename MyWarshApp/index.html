@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Warsh App - Fixed Colors</title>
-    <!-- Use a good Quran font if available, fallback to system -->
+    <title>Warsh App - Precision Fix</title>
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* 1. ORIGINAL TAJWEED COLORS */
+        /* 1. TAJWEED COLORS */
         .tj-ghunnah { color: #159a2f !important; } /* Green */
         .tj-madd    { color: #d62222 !important; } /* Red */
         .tj-qalqalah{ color: #0084d6 !important; } /* Blue */
@@ -62,13 +61,12 @@
     </div>
 
     <script>
-    // --- 1. TAJWEED ENGINE (From Original File) ---
+    // --- 1. TAJWEED ENGINE ---
     const SUKUN='\u0652',SHADDA='\u0651',FATHA='\u064E',DAMMA='\u064F',KASRA='\u0650';
     const TANWEEN=['\u064B','\u064C','\u064D'];
     const QALQ='قطبجد',IDGH_GH='ينمو',IDGH_NO='لر',IKHFA='تثجدذزسشصضطظفقك';
     const MADD='اوىيآ',HAMZA='ءأإؤئ';
 
-    // Original Helpers
     function isDiac(c){if(!c)return false;let x=c.charCodeAt(0);return(x>=0x064B&&x<=0x0652)||(x>=0x0653&&x<=0x0655)||x===0x0670||(x>=0x06D6&&x<=0x06ED)}
     function isLtr(c){if(!c)return false;let x=c.charCodeAt(0);return(x>=0x0621&&x<=0x064A)||x===0x0671}
     function getDiac(t,i){let d=[];for(let j=i+1;j<t.length&&isDiac(t[j]);j++)d.push(t[j]);return d}
@@ -76,59 +74,54 @@
     function nextL(t,i){for(let j=i+1;j<t.length;j++)if(isLtr(t[j]))return{c:t[j],i:j};return null}
     function prevL(t,i){for(let j=i-1;j>=0;j--)if(isLtr(t[j]))return{c:t[j],i:j};return null}
     function endW(t,i){let j=i+1;while(j<t.length&&isDiac(t[j]))j++;return j>=t.length||t[j]===' '}
-    
-    // NEW HELPER: Grab the letter AND its marks
-    function getEnd(t, i) {
-        let j = i + 1;
-        while(j < t.length && isDiac(t[j])) j++;
-        return j;
-    }
+    function getEnd(t, i) {let j=i+1;while(j<t.length&&isDiac(t[j]))j++;return j;}
 
     function detect(t){
         const a=[];
         for(let i=0;i<t.length;i++){
             const c=t[i];
-            if(!isLtr(c)) continue; // Process letters only
+            if(!isLtr(c)) continue;
             
             const n=nextL(t,i), p=prevL(t,i), end=endW(t,i);
-            const rangeEnd = getEnd(t, i); // Include attached marks
+            const rangeEnd = getEnd(t, i);
+            
+            // CRITICAL FIX: Check if the letter itself has a vowel.
+            // If it has a short vowel, it CANNOT be a Madd letter.
+            const hasVowel = has(t,i,FATHA)||has(t,i,DAMMA)||has(t,i,KASRA);
 
-            // Qalqalah
+            // 1. Qalqalah (Must have Sukoon, or be End without Shadda)
             if(QALQ.includes(c)&&(has(t,i,SUKUN)||(end&&!has(t,i,SHADDA))))
                 a.push({s:i,e:rangeEnd,cls:'tj-qalqalah'});
             
-            // Noon sakinah
+            // 2. Noon Sakinah
             else if(c==='ن'&&(has(t,i,SUKUN)||end)&&n&&!has(t,i,SHADDA)){
-                if(IDGH_GH.includes(n.c)){
-                    a.push({s:i,e:rangeEnd,cls:'tj-silent'});
-                    // Note: We don't color next char here to avoid overlap issues, simplifed logic
-                }
+                if(IDGH_GH.includes(n.c)) a.push({s:i,e:rangeEnd,cls:'tj-silent'});
                 else if(IDGH_NO.includes(n.c)) a.push({s:i,e:rangeEnd,cls:'tj-silent'});
                 else if(n.c==='ب') a.push({s:i,e:rangeEnd,cls:'tj-ghunnah'});
                 else if(IKHFA.includes(n.c)) a.push({s:i,e:rangeEnd,cls:'tj-ghunnah'});
             }
             
-            // Meem sakinah
+            // 3. Meem Sakinah
             else if(c==='م'&&(has(t,i,SUKUN)||end)&&n){
                 if(n.c==='م'){ a.push({s:i,e:rangeEnd,cls:'tj-silent'}); }
                 else if(n.c==='ب') a.push({s:i,e:rangeEnd,cls:'tj-ghunnah'});
             }
             
-            // Ghunnah mushaddad
+            // 4. Ghunnah Mushaddad
             else if((c==='م'||c==='ن')&&has(t,i,SHADDA)) a.push({s:i,e:rangeEnd,cls:'tj-ghunnah'});
             
-            // Lam shamsiyyah
+            // 5. Lam Shamsiyyah
             else if(c==='ل'&&p&&(p.c==='ا'||p.c==='\u0671')&&n&&'تثدذرزسشصضطظلن'.includes(n.c))
                 a.push({s:i,e:rangeEnd,cls:'tj-silent'});
             
-            // Madd
-            else if(MADD.includes(c)){
+            // 6. Madd (Must NOT have a vowel)
+            else if(MADD.includes(c) && !hasVowel){
                 if(n&&HAMZA.includes(n.c)) a.push({s:i,e:rangeEnd,cls:'tj-madd'});
                 else if(n&&(has(t,n.i,SUKUN)||has(t,n.i,SHADDA))) a.push({s:i,e:rangeEnd,cls:'tj-madd'});
                 else if(c==='ا'&&p&&has(t,p.i,FATHA)) a.push({s:i,e:rangeEnd,cls:'tj-madd'});
             }
             
-            // Ra
+            // 7. Ra
             else if(c==='ر'){
                 if(has(t,i,FATHA)||has(t,i,DAMMA)) a.push({s:i,e:rangeEnd,cls:'tj-ra-heavy'});
                 else if(has(t,i,KASRA)) a.push({s:i,e:rangeEnd,cls:'tj-ra-light'});
@@ -138,7 +131,7 @@
                 }
             }
 
-            // Tanween (Special Case: Attached to letter but logically separate)
+            // 8. Tanween
             let tw=getDiac(t,i).find(x=>TANWEEN.includes(x));
             if(tw&&n&&(IDGH_GH.includes(n.c)||IKHFA.includes(n.c)||n.c==='ب'))
                 a.push({s:i,e:rangeEnd,cls:'tj-ghunnah'});
@@ -148,9 +141,7 @@
 
     function apply(t,ann){
         const m=new Map();
-        // Fill the map for every index in the range
         for(const x of ann) for(let i=x.s;i<x.e;i++) m.set(i,x);
-        
         let h='',cls=null,open=false;
         for(let i=0;i<t.length;i++){
             const x=m.get(i),nc=x?x.cls:null;
@@ -175,46 +166,30 @@
     async function load() {
         const s = document.getElementById('s').value;
         const div = document.getElementById('display');
-        
         try {
             const res = await fetch('data/' + s + '.json');
-            if(!res.ok) throw new Error("File not found: data/" + s + ".json");
+            if(!res.ok) throw new Error("File not found");
             const data = await res.json();
             
             let html = '<h2 style="text-align:center">Surah ' + data.name_ar + '</h2>';
-            
             if (s != 1 && s != 9) {
                 const bism = "بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ";
                 html += '<div style="text-align:center; margin-bottom:15px">' + apply(bism, detect(bism)) + '</div>';
             }
-
             data.verses.forEach((txt, i) => {
                 const n = i + 1;
-                // Fix: Normalize ALEF variants if needed, but keeping raw text is safer for display
-                const colored = apply(txt, detect(txt));
-                html += `<div class="verse" id="v${n}" onclick="pick(${n})">${colored} <span class="num">${n}</span></div>`;
+                html += `<div class="verse" id="v${n}" onclick="pick(${n})">${apply(txt, detect(txt))} <span class="num">${n}</span></div>`;
             });
             div.innerHTML = html;
-            
             document.getElementById('v_start').value = 1;
             document.getElementById('v_end').value = data.verses.length;
-            
         } catch(e) {
-            div.innerHTML = `<div style="color:red; text-align:center; margin-top:50px">Error loading Surah ${s}: ${e.message}<br>Make sure the data folder exists!</div>`;
+            div.innerHTML = `<div style="text-align:center; margin-top:50px">Error: ${e.message}</div>`;
         }
     }
 
-    function pick(n) {
-        document.getElementById('v_start').value = n;
-        document.getElementById('v_end').value = n;
-        hl(n);
-    }
-
-    function hl(n) {
-        document.querySelectorAll('.active').forEach(e=>e.classList.remove('active'));
-        const el = document.getElementById('v'+n);
-        if(el) { el.classList.add('active'); el.scrollIntoView({behavior:'smooth', block:'center'}); }
-    }
+    function pick(n) { document.getElementById('v_start').value = n; document.getElementById('v_end').value = n; hl(n); }
+    function hl(n) { document.querySelectorAll('.active').forEach(e=>e.classList.remove('active')); const el = document.getElementById('v'+n); if(el) { el.classList.add('active'); el.scrollIntoView({behavior:'smooth', block:'center'}); } }
 
     async function play() {
         if(playing) return; playing=true; stopReq=false;
@@ -222,27 +197,16 @@
         const start = parseInt(document.getElementById('v_start').value);
         const end = parseInt(document.getElementById('v_end').value);
         const stat = document.getElementById('status');
-
         for(let a=start; a<=end; a++) {
             if(stopReq) break;
-            hl(a);
-            stat.innerText = `Playing Verse ${a}`;
+            hl(a); stat.innerText = `Playing ${a}`;
             aud.src = BASE + s + String(a).padStart(3,'0') + '.mp3';
-            try {
-                await new Promise(r => {
-                    aud.onended = r;
-                    aud.onerror = r; 
-                    aud.play().catch(r);
-                });
-            } catch(e){}
+            try { await new Promise(r => { aud.onended = r; aud.onerror = r; aud.play().catch(r); }); } catch(e){}
             if(!stopReq) await new Promise(r=>setTimeout(r, 400));
         }
         playing=false; stat.innerText="Done";
     }
-
     function stop() { stopReq=true; aud.pause(); playing=false; }
-    
-    // Init
     load();
     </script>
 </body>
