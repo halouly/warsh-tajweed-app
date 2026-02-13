@@ -3,78 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Warsh App - Precision Fix</title>
+    <title>Warsh Master App</title>
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* 1. TAJWEED COLORS */
-        .tj-ghunnah { color: #159a2f !important; } /* Green */
-        .tj-madd    { color: #d62222 !important; } /* Red */
-        .tj-qalqalah{ color: #0084d6 !important; } /* Blue */
-        .tj-ra-heavy{ color: #1e3a8a !important; font-weight: bold; } /* Dark Blue */
-        .tj-ra-light{ color: #0ea5e9 !important; } /* Cyan */
-        .tj-silent  { color: #a3a3a3 !important; } /* Grey */
+        /* WARSH TAJWEED PALETTE */
+        .tj-ghunnah { color: #16a34a !important; } /* Green */
+        .tj-madd    { color: #dc2626 !important; } /* Red */
+        .tj-qalqalah{ color: #0284c7 !important; } /* Blue */
+        .tj-heavy   { color: #1e3a8a !important; font-weight: bold; } /* Dark Blue (Heavy Lam/Ra) */
+        .tj-light   { color: #06b6d4 !important; } /* Cyan (Light Ra) */
+        .tj-special { color: #d97706 !important; font-weight: bold; } /* ORANGE: Tasshil/Naql Dots */
+        .tj-silent  { color: #9ca3af !important; } /* Gray */
 
-        /* 2. UI STYLES */
+        /* UI */
         :root { --sz: 32px; }
-        body { font-family: 'Amiri', 'Uthmanic', serif; background: #fffcf2; color: #000; margin:0; padding-bottom:150px; }
-        #display { padding: 20px; max-width: 900px; margin: 0 auto; line-height: 2.8; text-align: justify; }
+        body { font-family: 'Amiri', serif; background: #fffcf2; color: #1f2937; margin:0; padding-bottom:150px; }
+        #display { padding: 30px 20px; max-width: 900px; margin: 0 auto; line-height: 2.8; text-align: justify; }
         
-        .verse { display: inline; font-size: var(--sz); cursor: pointer; padding: 4px 0; margin: 0 3px; border-bottom: 1px dashed #e5e5e5; }
+        .verse { display: inline; font-size: var(--sz); cursor: pointer; padding: 4px 0; border-bottom: 1px dashed #e5e5e5; }
         .verse:hover { background: #f9f9f9; }
-        .verse.active { background: #fff7d1; box-shadow: 0 0 0 3px #fff7d1; border-radius: 6px; }
-        .num { font-size: 0.6em; color: #8b4513; border: 1px solid #8b4513; border-radius: 50%; padding: 0 8px; margin: 0 5px; vertical-align: middle; display: inline-block; }
+        .verse.active { background: #fef3c7; box-shadow: 0 0 0 4px #fef3c7; border-radius: 6px; }
+        .num { font-size: 0.55em; color: #92400e; border: 1px solid #92400e; border-radius: 50%; padding: 0 6px; margin: 0 5px; vertical-align: middle; user-select: none; }
 
         #panel {
             position: fixed; bottom: 0; left: 0; right: 0;
-            background: #fff; border-top: 4px solid #8b4513;
+            background: #fff; border-top: 4px solid #92400e;
             padding: 15px; z-index: 1000; direction: ltr;
             display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
-            box-shadow: 0 -5px 25px rgba(0,0,0,0.1);
+            box-shadow: 0 -10px 25px rgba(0,0,0,0.05);
         }
-        input, button { padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; }
-        button { background: #8b4513; color: white; border: none; font-weight: bold; cursor: pointer; }
-        button:hover { background: #683209; }
+        input, button { padding: 10px; font-size: 16px; border: 1px solid #d1d5db; border-radius: 6px; }
+        button { background: #92400e; color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { background: #78350f; }
     </style>
 </head>
 <body>
 
-    <div id="display" style="text-align:center; padding-top:50px">Loading...</div>
+    <div id="display" style="text-align:center; padding-top:100px; color:#888;">Loading Warsh Data...</div>
 
     <div id="panel">
-        <input type="number" id="s" value="1" min="1" max="114" style="width:60px" title="Surah Number">
+        <input type="number" id="s" value="1" min="1" max="114" style="width:60px" placeholder="Surah">
         <button onclick="load()">Go</button>
-        
-        <div style="width:1px; background:#ccc; margin:0 5px;"></div>
-        
+        <div style="width:1px; background:#e5e7eb; margin:0 5px;"></div>
         <button onclick="play()">▶ PLAY</button>
-        <button onclick="stop()" style="background:#444">STOP</button>
-        
-        <div style="display:flex; align-items:center; gap:5px; border-left:1px solid #ccc; padding-left:10px;">
-            <span>Size:</span>
-            <input type="range" min="20" max="70" value="32" oninput="document.documentElement.style.setProperty('--sz', this.value+'px')">
+        <button onclick="stop()" style="background:#4b5563">STOP</button>
+        <div style="display:flex; align-items:center; gap:8px; margin-left:10px;">
+            <span style="font-size:12px; color:#666">SIZE</span>
+            <input type="range" min="24" max="64" value="32" oninput="document.documentElement.style.setProperty('--sz', this.value+'px')">
         </div>
-        
-        <input type="hidden" id="v_start" value="1">
-        <input type="hidden" id="v_end" value="7">
-        
-        <div id="status" style="width:100%; text-align:center; font-size:13px; color:#666; margin-top:5px;">Ready</div>
+        <input type="hidden" id="v_start" value="1"><input type="hidden" id="v_end" value="1">
+        <div id="status" style="width:100%; text-align:center; font-size:12px; color:#6b7280; margin-top:5px;">Ready</div>
     </div>
 
     <script>
-    // --- 1. TAJWEED ENGINE ---
-    const SUKUN='\u0652',SHADDA='\u0651',FATHA='\u064E',DAMMA='\u064F',KASRA='\u0650';
-    const TANWEEN=['\u064B','\u064C','\u064D'];
-    const QALQ='قطبجد',IDGH_GH='ينمو',IDGH_NO='لر',IKHFA='تثجدذزسشصضطظفقك';
-    const MADD='اوىيآ',HAMZA='ءأإؤئ';
+    // === 1. WARSH ENGINE ===
+    const SUKUN='\u0652', SHADDA='\u0651', FATHA='\u064E', DAMMA='\u064F', KASRA='\u0650';
+    const DAGGER='\u0670', MADD_SIGN='\u0653', WARSH_DOT='\u06EC'; // The special dot
+    
+    // Letters
+    const QALQ='قطبجد', IDGH_GH='ينمو', IDGH_NO='لر', IKHFA='تثجدذزسشصضطظفقك';
+    const MADD='اوى'+DAGGER, HAMZA='ءأإؤئ';
+    const HEAVY_LAM_TRIGGERS = 'صطظ'; 
 
-    function isDiac(c){if(!c)return false;let x=c.charCodeAt(0);return(x>=0x064B&&x<=0x0652)||(x>=0x0653&&x<=0x0655)||x===0x0670||(x>=0x06D6&&x<=0x06ED)}
-    function isLtr(c){if(!c)return false;let x=c.charCodeAt(0);return(x>=0x0621&&x<=0x064A)||x===0x0671}
-    function getDiac(t,i){let d=[];for(let j=i+1;j<t.length&&isDiac(t[j]);j++)d.push(t[j]);return d}
-    function has(t,i,c){return getDiac(t,i).includes(c)}
-    function nextL(t,i){for(let j=i+1;j<t.length;j++)if(isLtr(t[j]))return{c:t[j],i:j};return null}
-    function prevL(t,i){for(let j=i-1;j>=0;j--)if(isLtr(t[j]))return{c:t[j],i:j};return null}
-    function endW(t,i){let j=i+1;while(j<t.length&&isDiac(t[j]))j++;return j>=t.length||t[j]===' '}
-    function getEnd(t, i) {let j=i+1;while(j<t.length&&isDiac(t[j]))j++;return j;}
+    function isDiac(c){const x=c.charCodeAt(0); return (x>=0x064B && x<=0x065F) || x===0x0670 || (x>=0x06D6 && x<=0x06ED);}
+    function isLtr(c){const x=c.charCodeAt(0); return !isDiac(c) && x>=0x0600 && x<=0x06FF;}
+    function getDiac(t,i){let d=[]; for(let j=i+1;j<t.length&&isDiac(t[j]);j++)d.push(t[j]); return d;}
+    function has(t,i,c){return getDiac(t,i).includes(c);}
+    function getEnd(t, i){let j=i+1; while(j<t.length&&isDiac(t[j]))j++; return j;}
+    function nextL(t,i){for(let j=i+1;j<t.length;j++)if(isLtr(t[j]))return{c:t[j],i:j}; return null;}
+    function prevL(t,i){for(let j=i-1;j>=0;j--)if(isLtr(t[j]))return{c:t[j],i:j}; return null;}
 
     function detect(t){
         const a=[];
@@ -82,59 +79,61 @@
             const c=t[i];
             if(!isLtr(c)) continue;
             
-            const n=nextL(t,i), p=prevL(t,i), end=endW(t,i);
+            const n=nextL(t,i), p=prevL(t,i);
             const rangeEnd = getEnd(t, i);
+            const diacs = getDiac(t,i);
             
-            // CRITICAL FIX: Check if the letter itself has a vowel.
-            // If it has a short vowel, it CANNOT be a Madd letter.
-            const hasVowel = has(t,i,FATHA)||has(t,i,DAMMA)||has(t,i,KASRA);
+            const isSakin = has(t,i,SUKUN) || (!diacs.length && n && !has(t,i,SHADDA)); 
+            const hasVowel = has(t,i,FATHA) || has(t,i,DAMMA) || has(t,i,KASRA);
+            const isShadda = has(t,i,SHADDA);
 
-            // 1. Qalqalah (Must have Sukoon, or be End without Shadda)
-            if(QALQ.includes(c)&&(has(t,i,SUKUN)||(end&&!has(t,i,SHADDA))))
-                a.push({s:i,e:rangeEnd,cls:'tj-qalqalah'});
-            
-            // 2. Noon Sakinah
-            else if(c==='ن'&&(has(t,i,SUKUN)||end)&&n&&!has(t,i,SHADDA)){
-                if(IDGH_GH.includes(n.c)) a.push({s:i,e:rangeEnd,cls:'tj-silent'});
-                else if(IDGH_NO.includes(n.c)) a.push({s:i,e:rangeEnd,cls:'tj-silent'});
-                else if(n.c==='ب') a.push({s:i,e:rangeEnd,cls:'tj-ghunnah'});
-                else if(IKHFA.includes(n.c)) a.push({s:i,e:rangeEnd,cls:'tj-ghunnah'});
+            let rule = null;
+
+            // --- 0. SPECIAL WARSH MARKERS (Tasshil/Naql) ---
+            // If the letter carries the special dot (U+06EC), color it ORANGE
+            if (has(t, i, WARSH_DOT) || has(t, i, '\u065F')) {
+                rule = 'tj-special';
             }
-            
-            // 3. Meem Sakinah
-            else if(c==='م'&&(has(t,i,SUKUN)||end)&&n){
-                if(n.c==='م'){ a.push({s:i,e:rangeEnd,cls:'tj-silent'}); }
-                else if(n.c==='ب') a.push({s:i,e:rangeEnd,cls:'tj-ghunnah'});
+
+            // --- 1. GHUNNAH ---
+            else if((c==='ن'||c==='م') && isShadda) rule = 'tj-ghunnah';
+            else if(c==='ن' && isSakin && n){
+                if(IDGH_GH.includes(n.c) || n.c==='ب' || IKHFA.includes(n.c)) rule = 'tj-ghunnah';
+                else if(IDGH_NO.includes(n.c)) rule = 'tj-silent';
             }
-            
-            // 4. Ghunnah Mushaddad
-            else if((c==='م'||c==='ن')&&has(t,i,SHADDA)) a.push({s:i,e:rangeEnd,cls:'tj-ghunnah'});
-            
-            // 5. Lam Shamsiyyah
-            else if(c==='ل'&&p&&(p.c==='ا'||p.c==='\u0671')&&n&&'تثدذرزسشصضطظلن'.includes(n.c))
-                a.push({s:i,e:rangeEnd,cls:'tj-silent'});
-            
-            // 6. Madd (Must NOT have a vowel)
-            else if(MADD.includes(c) && !hasVowel){
-                if(n&&HAMZA.includes(n.c)) a.push({s:i,e:rangeEnd,cls:'tj-madd'});
-                else if(n&&(has(t,n.i,SUKUN)||has(t,n.i,SHADDA))) a.push({s:i,e:rangeEnd,cls:'tj-madd'});
-                else if(c==='ا'&&p&&has(t,p.i,FATHA)) a.push({s:i,e:rangeEnd,cls:'tj-madd'});
+            else if(c==='م' && isSakin && n && n.c==='ب') rule = 'tj-ghunnah';
+
+            // --- 2. QALQALAH ---
+            else if(QALQ.includes(c) && (has(t,i,SUKUN) || (!hasVowel && !n))) rule = 'tj-qalqalah';
+
+            // --- 3. HEAVY LAM ---
+            else if(c==='ل' && has(t,i,FATHA) && p && HEAVY_LAM_TRIGGERS.includes(p.c) && (has(t,p.i,FATHA)||has(t,p.i,SUKUN)||!getDiac(t,p.i).length)){
+                rule = 'tj-heavy';
             }
-            
-            // 7. Ra
+
+            // --- 4. WARSH RA ---
             else if(c==='ر'){
-                if(has(t,i,FATHA)||has(t,i,DAMMA)) a.push({s:i,e:rangeEnd,cls:'tj-ra-heavy'});
-                else if(has(t,i,KASRA)) a.push({s:i,e:rangeEnd,cls:'tj-ra-light'});
-                else if(has(t,i,SUKUN)||end){
-                    if(p&&has(t,p.i,KASRA)) a.push({s:i,e:rangeEnd,cls:'tj-ra-light'});
-                    else if(p&&(has(t,p.i,FATHA)||has(t,p.i,DAMMA))) a.push({s:i,e:rangeEnd,cls:'tj-ra-heavy'});
+                if(has(t,i,FATHA) || has(t,i,DAMMA)) rule = 'tj-heavy';
+                if(has(t,i,KASRA)) rule = 'tj-light'; 
+                else if((has(t,i,FATHA) || has(t,i,DAMMA)) && p){
+                    if(has(t,p.i,KASRA) || (p.c==='ي' && (has(t,p.i,SUKUN)||!getDiac(t,p.i).length))) rule = 'tj-light';
                 }
             }
 
-            // 8. Tanween
-            let tw=getDiac(t,i).find(x=>TANWEEN.includes(x));
-            if(tw&&n&&(IDGH_GH.includes(n.c)||IKHFA.includes(n.c)||n.c==='ب'))
-                a.push({s:i,e:rangeEnd,cls:'tj-ghunnah'});
+            // --- 5. MADD (Including Badal) ---
+            else if(MADD.includes(c) && !hasVowel && !isShadda){
+                // A. Normal/Strong Madd
+                if(has(t,i,MADD_SIGN) || (n && (has(t,n.i,SHADDA) || has(t,n.i,SUKUN)))) rule = 'tj-madd';
+                // B. BADAL MADD (Hamza before Madd) - Warsh Special
+                else if(p && HAMZA.includes(p.c)) rule = 'tj-madd';
+                // C. Natural Madd
+                else rule = 'tj-madd';
+            }
+            
+            // --- 6. SILENT ---
+            else if(c==='ل' && isSakin && n && has(t,n.i,SHADDA)) rule = 'tj-silent';
+
+            if(rule) a.push({s:i, e:rangeEnd, cls:rule});
         }
         return a;
     }
@@ -157,25 +156,25 @@
         return h;
     }
 
-    // --- 2. APP LOGIC ---
+    // === 2. APP LOGIC ===
     const BASE = "https://everyayah.com/data/warsh/warsh_ibrahim_aldosary_128kbps/";
     const aud = new Audio();
-    let playing = false;
-    let stopReq = false;
+    let playing=false, stopReq=false;
 
     async function load() {
         const s = document.getElementById('s').value;
         const div = document.getElementById('display');
         try {
             const res = await fetch('data/' + s + '.json');
-            if(!res.ok) throw new Error("File not found");
+            if(!res.ok) throw new Error("Data missing for Surah "+s);
             const data = await res.json();
             
-            let html = '<h2 style="text-align:center">Surah ' + data.name_ar + '</h2>';
+            let html = `<h2 style="margin-bottom:30px">Surah ${data.name_ar}</h2>`;
             if (s != 1 && s != 9) {
                 const bism = "بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ";
-                html += '<div style="text-align:center; margin-bottom:15px">' + apply(bism, detect(bism)) + '</div>';
+                html += `<div style="text-align:center; margin-bottom:20px; font-size:0.9em">${apply(bism, detect(bism))}</div>`;
             }
+
             data.verses.forEach((txt, i) => {
                 const n = i + 1;
                 html += `<div class="verse" id="v${n}" onclick="pick(${n})">${apply(txt, detect(txt))} <span class="num">${n}</span></div>`;
@@ -184,29 +183,28 @@
             document.getElementById('v_start').value = 1;
             document.getElementById('v_end').value = data.verses.length;
         } catch(e) {
-            div.innerHTML = `<div style="text-align:center; margin-top:50px">Error: ${e.message}</div>`;
+            div.innerHTML = `<div style="color:#d62222; margin-top:50px">Error: ${e.message}</div>`;
         }
     }
 
-    function pick(n) { document.getElementById('v_start').value = n; document.getElementById('v_end').value = n; hl(n); }
-    function hl(n) { document.querySelectorAll('.active').forEach(e=>e.classList.remove('active')); const el = document.getElementById('v'+n); if(el) { el.classList.add('active'); el.scrollIntoView({behavior:'smooth', block:'center'}); } }
-
+    function pick(n) { document.getElementById('v_start').value=n; document.getElementById('v_end').value=n; hl(n); }
+    function hl(n) { document.querySelectorAll('.active').forEach(e=>e.classList.remove('active')); const el=document.getElementById('v'+n); if(el){el.classList.add('active'); el.scrollIntoView({behavior:'smooth',block:'center'});}}
     async function play() {
         if(playing) return; playing=true; stopReq=false;
         const s = document.getElementById('s').value.padStart(3,'0');
         const start = parseInt(document.getElementById('v_start').value);
         const end = parseInt(document.getElementById('v_end').value);
-        const stat = document.getElementById('status');
+        const st = document.getElementById('status');
         for(let a=start; a<=end; a++) {
             if(stopReq) break;
-            hl(a); stat.innerText = `Playing ${a}`;
-            aud.src = BASE + s + String(a).padStart(3,'0') + '.mp3';
-            try { await new Promise(r => { aud.onended = r; aud.onerror = r; aud.play().catch(r); }); } catch(e){}
+            hl(a); st.innerText=`Playing Ayah ${a}...`;
+            aud.src = `${BASE}${s}${String(a).padStart(3,'0')}.mp3`;
+            try { await new Promise(r=>{aud.onended=r; aud.onerror=r; aud.play().catch(r);}); } catch(e){}
             if(!stopReq) await new Promise(r=>setTimeout(r, 400));
         }
-        playing=false; stat.innerText="Done";
+        playing=false; st.innerText="Ready";
     }
-    function stop() { stopReq=true; aud.pause(); playing=false; }
+    function stop() { stopReq=true; aud.pause(); playing=false; document.getElementById('status').innerText="Stopped"; }
     load();
     </script>
 </body>
