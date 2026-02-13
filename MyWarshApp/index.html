@@ -78,7 +78,6 @@
         input[type=range] { accent-color: var(--accent); cursor: pointer; }
         #status { text-align: center; font-size: 0.8rem; opacity: 0.7; margin-top: 5px; }
 
-        /* PAGINATION CONTROLS */
         .page-nav { display: flex; gap: 5px; align-items: center; }
         .page-nav.hidden { display: none; }
         #custom-chunk-input { width: 50px; display: none; text-align: center; }
@@ -102,9 +101,7 @@
     <div id="controls">
         <!-- Row 1: Surah & View Settings -->
         <div class="row">
-            <select id="surah-select" onchange="changeSurah(this.value)" style="width:180px">
-                <!-- Populated by JS -->
-            </select>
+            <select id="surah-select" onchange="changeSurah(this.value)" style="width:160px"></select>
             
             <span style="opacity:0.5">|</span>
 
@@ -127,14 +124,24 @@
 
         <!-- Row 2: Audio & Playback -->
         <div class="row">
+            <!-- Reciter Select -->
+            <select id="reciter-select" style="width:140px">
+                <option value="warsh_ibrahim_aldosary_128kbps">Ibrahim Al-Dosary</option>
+                <option value="warsh_yassin_al_jazairi_64kbps">Yassin Al-Jazairi</option>
+                <option value="Kushite_Muhammmad_siddiq_Al-Minshawi_32kbps">Al-Minshawi (Warsh)</option>
+                <!-- Note: Kozabri path on EveryAyah is sometimes inconsistent, using Minshawi Warsh as fallback or verify -->
+                <!-- Let's try to find Kozabri specific path if possible, usually "warsh_al_qazabri_128kbps" -->
+                <option value="warsh_al_qazabri_128kbps">Omar Al-Qazabri</option>
+            </select>
+
+            <div style="width:1px; height:20px; background:var(--border)"></div>
+
             <div style="display:flex; align-items:center; gap:5px; font-size:0.9rem;">
                 <span>Ayah:</span>
                 <input type="number" id="v_start" value="1" min="1" style="width:50px">
                 <span>to</span>
                 <input type="number" id="v_end" value="1" min="1" style="width:50px">
             </div>
-            
-            <div style="width:1px; height:20px; background:var(--border)"></div>
             
             <label style="display:flex; align-items:center; gap:5px; font-size:0.8rem; cursor:pointer">
                 <input type="checkbox" id="loop-box"> Loop
@@ -163,7 +170,7 @@
         "Al-Masad","Al-Ikhlas","Al-Falaq","An-Nas"
     ];
 
-    // --- 1. TAJWEED ENGINE (Strict Warsh) ---
+    // --- 1. TAJWEED ENGINE ---
     const SUKUN='\u0652', SHADDA='\u0651', FATHA='\u064E', DAMMA='\u064F', KASRA='\u0650';
     const DAGGER='\u0670', MADD_SIGN='\u0653', WARSH_DOT='\u06EC'; 
     const QALQ='قطبجد', IDGH_GH='ينمو', IDGH_NO='لر', IKHFA='تثجدذزسشصضطظفقك';
@@ -228,18 +235,12 @@
         if(open)h+='</span>'; return h;
     }
 
-    // --- 2. STATE & LOGIC ---
-    let state = {
-        surah: 1,
-        chunkSize: 'all', // 'all', or number
-        offset: 1, 
-        data: null
-    };
-    
-    let playing = false;
-    let stopReq = false;
+    // --- 2. STATE ---
+    let state = { surah: 1, chunkSize: 'all', offset: 1, data: null };
+    let playing = false, stopReq = false;
     const aud = new Audio();
     
+    // Init Select
     const sel = document.getElementById('surah-select');
     SURAH_NAMES.forEach((n,i) => {
         let opt = document.createElement('option');
@@ -248,54 +249,33 @@
     });
 
     // --- 3. ACTIONS ---
-
     async function changeSurah(id) {
-        state.surah = parseInt(id);
-        state.offset = 1; 
+        state.surah = parseInt(id); state.offset = 1; 
         document.getElementById('surah-select').value = state.surah;
-        await loadData();
-        render();
+        await loadData(); render();
     }
 
     function changeViewMode(mode) {
         const inp = document.getElementById('custom-chunk-input');
-        
-        if (mode === 'custom') {
-            inp.classList.add('show');
-            inp.focus();
-            // Wait for user input
-        } else {
-            inp.classList.remove('show');
-            state.chunkSize = mode === 'all' ? 'all' : parseInt(mode);
-            state.offset = 1;
-            render();
-        }
+        if (mode === 'custom') { inp.classList.add('show'); inp.focus(); } 
+        else { inp.classList.remove('show'); state.chunkSize = mode === 'all' ? 'all' : parseInt(mode); state.offset = 1; render(); }
         updateNavVisibility();
     }
 
     function setCustomChunk(val) {
         let n = parseInt(val);
-        if (n && n > 0) {
-            state.chunkSize = n;
-            state.offset = 1;
-            render();
-            updateNavVisibility();
-        }
+        if (n && n > 0) { state.chunkSize = n; state.offset = 1; render(); updateNavVisibility(); }
     }
 
     function updateNavVisibility() {
         const nav = document.getElementById('page-controls');
-        if(state.chunkSize === 'all') nav.classList.add('hidden');
-        else nav.classList.remove('hidden');
+        if(state.chunkSize === 'all') nav.classList.add('hidden'); else nav.classList.remove('hidden');
     }
 
     function changePage(dir) {
         if(state.chunkSize === 'all') return;
         const next = state.offset + (dir * state.chunkSize);
-        if(next >= 1 && next <= state.data.verses.length) {
-            state.offset = next;
-            render();
-        }
+        if(next >= 1 && next <= state.data.verses.length) { state.offset = next; render(); }
     }
 
     async function loadData() {
@@ -304,17 +284,13 @@
             const res = await fetch(`data/${state.surah}.json`);
             if(!res.ok) throw new Error("File not found");
             state.data = await res.json();
-            
             document.getElementById('surah-title').innerText = `${state.surah}. ${state.data.name_ar} (${state.data.name_en})`;
             document.getElementById('status').innerText = "Ready";
-        } catch(e) {
-            document.getElementById('display').innerHTML = `<div style="color:red;text-align:center">Error: ${e.message}</div>`;
-        }
+        } catch(e) { document.getElementById('display').innerHTML = `<div style="color:red;text-align:center">Error: ${e.message}</div>`; }
     }
 
     function render() {
         if(!state.data) return;
-
         const div = document.getElementById('display');
         let html = "";
         
@@ -335,33 +311,19 @@
         div.innerHTML = html;
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
-        if(state.chunkSize !== 'all') {
-            document.getElementById('page-info').innerText = `${state.offset}-${endIdx}`;
-        }
-        
+        if(state.chunkSize !== 'all') document.getElementById('page-info').innerText = `${state.offset}-${endIdx}`;
         document.getElementById('v_start').value = state.offset;
         document.getElementById('v_end').value = endIdx;
     }
 
-    function pick(n) {
-        document.getElementById('v_start').value = n;
-        hl(n);
-    }
-
-    function hl(n) {
-        document.querySelectorAll('.active').forEach(e=>e.classList.remove('active'));
-        const el = document.getElementById('v'+n);
-        if(el) { 
-            el.classList.add('active'); 
-            el.scrollIntoView({behavior:'smooth', block:'center'}); 
-        }
-    }
+    function pick(n) { document.getElementById('v_start').value = n; hl(n); }
+    function hl(n) { document.querySelectorAll('.active').forEach(e=>e.classList.remove('active')); const el=document.getElementById('v'+n); if(el){el.classList.add('active'); el.scrollIntoView({behavior:'smooth', block:'center'});}}
 
     async function play() {
-        if(playing) return; 
-        playing=true; stopReq=false;
+        if(playing) return; playing=true; stopReq=false;
         
         const btn = document.getElementById('play-btn');
+        const reciter = document.getElementById('reciter-select').value;
         const sId = String(state.surah).padStart(3,'0');
         const st = document.getElementById('status');
         
@@ -373,9 +335,8 @@
 
             for(let a=start; a<=end; a++) {
                 if(stopReq) break;
-                hl(a); 
-                st.innerText = `Playing Ayah ${a} / ${end}`;
-                aud.src = `https://everyayah.com/data/warsh/warsh_ibrahim_aldosary_128kbps/${sId}${String(a).padStart(3,'0')}.mp3`;
+                hl(a); st.innerText = `Playing Ayah ${a} / ${end}`;
+                aud.src = `https://everyayah.com/data/${reciter}/${sId}${String(a).padStart(3,'0')}.mp3`;
                 
                 try {
                     await new Promise((resolve) => {
@@ -384,34 +345,18 @@
                         aud.play().catch(resolve);
                     });
                 } catch(e){}
-
                 if(!stopReq) await new Promise(r=>setTimeout(r, 200)); 
             }
-            
             if(stopReq || !document.getElementById('loop-box').checked) break;
             st.innerText = "Looping...";
             await new Promise(r=>setTimeout(r, 500));
         }
-
-        playing=false; 
-        btn.innerText = "▶ PLAY";
-        st.innerText = "Ready";
+        playing=false; btn.innerText = "▶ PLAY"; st.innerText = "Ready";
     }
 
-    function stop() { 
-        stopReq=true; aud.pause(); 
-        document.getElementById('play-btn').innerText = "▶ PLAY";
-    }
-
+    function stop() { stopReq=true; aud.pause(); document.getElementById('play-btn').innerText = "▶ PLAY"; }
     function toggleTheme() { document.body.classList.toggle('dark'); }
-    
-    function toggleFullScreen() {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen();
-        } else {
-            if (document.exitFullscreen) document.exitFullscreen();
-        }
-    }
+    function toggleFullScreen() { if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); } else { if (document.exitFullscreen) document.exitFullscreen(); } }
 
     // Init
     changeSurah(1);
