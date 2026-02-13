@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Warsh App - Final</title>
+    <title>Warsh App - Live Data</title>
     <style>
         /* 1. TAJWEED COLORS */
         .tj-ghunnah { color: #16a34a !important; }
@@ -37,7 +37,7 @@
 </head>
 <body>
 
-    <div id="display">Loading Surah 1...</div>
+    <div id="display">Loading...</div>
 
     <div id="panel">
         <input type="number" id="s" value="1" min="1" max="114" style="width:60px" title="Surah Number">
@@ -53,7 +53,6 @@
             <input type="range" min="20" max="70" value="32" oninput="document.documentElement.style.setProperty('--sz', this.value+'px')">
         </div>
         
-        <!-- Hidden State -->
         <input type="hidden" id="v_start" value="1">
         <input type="hidden" id="v_end" value="7">
         
@@ -132,19 +131,23 @@
         const div = document.getElementById('display');
         
         try {
-            // FETCH FROM DATA FOLDER
+            // === FETCH FROM DATA FOLDER ===
+            // Note: Since this file is in MyWarshApp/, and data is in MyWarshApp/data/
+            // The path is simply 'data/X.json'
             const res = await fetch('data/' + s + '.json');
-            if(!res.ok) throw new Error("Surah " + s + " not found. Run setup.py!");
+            
+            if(!res.ok) throw new Error("File not found: data/" + s + ".json");
             const data = await res.json();
             
             let html = '<h2 style="text-align:center">Surah ' + data.name_ar + '</h2>';
             
-            // Bismillah logic (skip for Surah 1 & 9 based on data structure)
+            // Bismillah logic
             if (s != 1 && s != 9) {
                 const bism = "بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ";
                 html += '<div style="text-align:center; margin-bottom:15px">' + apply(bism, detect(bism)) + '</div>';
             }
 
+            // Loop through verses from JSON
             data.verses.forEach((txt, i) => {
                 const n = i + 1;
                 const colored = apply(txt, detect(txt));
@@ -152,12 +155,12 @@
             });
             div.innerHTML = html;
             
-            // Set range
+            // Reset range
             document.getElementById('v_start').value = 1;
             document.getElementById('v_end').value = data.verses.length;
             
         } catch(e) {
-            div.innerHTML = `<div style="color:red; text-align:center">${e.message}</div>`;
+            div.innerHTML = `<div style="color:red; text-align:center; margin-top:50px">Error loading Surah ${s}: ${e.message}<br>Make sure the data folder exists!</div>`;
         }
     }
 
