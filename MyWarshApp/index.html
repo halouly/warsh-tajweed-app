@@ -3,24 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Warsh Master App</title>
+    <title>Warsh App - Strict Mode</title>
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
     <style>
         /* WARSH TAJWEED PALETTE */
         .tj-ghunnah { color: #16a34a !important; } /* Green */
-        .tj-madd    { color: #dc2626 !important; } /* Red */
+        .tj-madd    { color: #dc2626 !important; } /* Red (Only Extra Madd) */
         .tj-qalqalah{ color: #0284c7 !important; } /* Blue */
-        .tj-heavy   { color: #1e3a8a !important; font-weight: bold; } /* Dark Blue */
-        .tj-light   { color: #06b6d4 !important; } /* Cyan */
-        .tj-special { color: #d97706 !important; font-weight: bold; } /* Orange */
-        .tj-silent  { color: #9ca3af !important; } /* Gray (ONLY for Silent letters) */
+        .tj-heavy   { color: #1e3a8a !important; font-weight: bold; } /* Dark Blue (Heavy Lam/Ra) */
+        .tj-light   { color: #06b6d4 !important; } /* Cyan (Light Ra) */
+        .tj-special { color: #d97706 !important; font-weight: bold; } /* Orange (Warsh Dots) */
+        .tj-silent  { color: #9ca3af !important; } /* Gray */
 
         /* UI */
         :root { --sz: 32px; }
         body { 
             font-family: 'Amiri', serif; 
             background: #fffcf2; 
-            color: #000000; /* STRICT BLACK BASE COLOR */
+            color: #000000; /* STRICT BLACK BASE */
             margin:0; padding-bottom:150px; 
         }
         #display { padding: 30px 20px; max-width: 900px; margin: 0 auto; line-height: 2.8; text-align: justify; }
@@ -31,7 +31,7 @@
             cursor: pointer; 
             padding: 4px 0; 
             border-bottom: 1px dashed #e5e5e5;
-            color: #000000; /* Ensure base text is black */
+            color: #000000;
         }
         .verse:hover { background: #f9f9f9; }
         .verse.active { background: #fef3c7; box-shadow: 0 0 0 4px #fef3c7; border-radius: 6px; }
@@ -68,11 +68,10 @@
     </div>
 
     <script>
-    // === 1. WARSH ENGINE ===
+    // === 1. WARSH ENGINE (STRICT) ===
     const SUKUN='\u0652', SHADDA='\u0651', FATHA='\u064E', DAMMA='\u064F', KASRA='\u0650';
     const DAGGER='\u0670', MADD_SIGN='\u0653', WARSH_DOT='\u06EC'; 
     
-    // Letters
     const QALQ='قطبجد', IDGH_GH='ينمو', IDGH_NO='لر', IKHFA='تثجدذزسشصضطظفقك';
     const MADD='اوى'+DAGGER, HAMZA='ءأإؤئ';
     const HEAVY_LAM_TRIGGERS = 'صطظ'; 
@@ -129,11 +128,17 @@
                 }
             }
 
-            // MADD
+            // --- STRICT MADD LOGIC ---
             else if(MADD.includes(c) && !hasVowel && !isShadda){
-                if(has(t,i,MADD_SIGN) || (n && (has(t,n.i,SHADDA) || has(t,n.i,SUKUN)))) rule = 'tj-madd';
-                else if(p && HAMZA.includes(p.c)) rule = 'tj-madd'; // Badal
-                else rule = 'tj-madd';
+                // ONLY color if it's an "Extra" Madd (Badal, Munfasil, Muttasil, Lazim)
+                // 1. Explicit Sign (~)
+                if(has(t,i,MADD_SIGN)) rule = 'tj-madd';
+                // 2. Followed by Hamza/Sukun/Shadda (Muttasil/Munfasil/Lazim)
+                else if(n && (HAMZA.includes(n.c) || has(t,n.i,SUKUN) || has(t,n.i,SHADDA))) rule = 'tj-madd';
+                // 3. Preceded by Hamza (Badal Madd)
+                else if(p && HAMZA.includes(p.c)) rule = 'tj-madd';
+                
+                // Note: Normal Madd (Tabi'i) falls through here and remains BLACK.
             }
             
             // SILENT
@@ -183,15 +188,6 @@
 
             data.verses.forEach((txt, i) => {
                 let n = i + 1;
-                // DATA PATCH: Surah 2 (Baqara)
-                // If Surah 2, Verse 1 contains MORE than Alif Lam Mim, it's merged.
-                // We should technically split it, but audio relies on Ayah numbers.
-                // If the text is merged, just display it.
-                // Note: The user said "Baqara 1 should stop at Alif Lam Mim". 
-                // If the data in 2.json has them merged, we can't easily split without breaking audio sync 
-                // unless we know exactly where to split. 
-                // For now, we display exactly what is in the JSON to keep Audio Sync safe.
-                
                 html += `<div class="verse" id="v${n}" onclick="pick(${n})">${apply(txt, detect(txt))} <span class="num">${n}</span></div>`;
             });
             div.innerHTML = html;
