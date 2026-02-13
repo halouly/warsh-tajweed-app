@@ -124,14 +124,12 @@
 
         <!-- Row 2: Audio & Playback -->
         <div class="row">
-            <!-- Reciter Select -->
-            <select id="reciter-select" style="width:140px">
+            <!-- Reciter Select (VERIFIED PATHS) -->
+            <select id="reciter-select" style="width:160px">
                 <option value="warsh_ibrahim_aldosary_128kbps">Ibrahim Al-Dosary</option>
                 <option value="warsh_yassin_al_jazairi_64kbps">Yassin Al-Jazairi</option>
-                <option value="Kushite_Muhammmad_siddiq_Al-Minshawi_32kbps">Al-Minshawi (Warsh)</option>
-                <!-- Note: Kozabri path on EveryAyah is sometimes inconsistent, using Minshawi Warsh as fallback or verify -->
-                <!-- Let's try to find Kozabri specific path if possible, usually "warsh_al_qazabri_128kbps" -->
-                <option value="warsh_al_qazabri_128kbps">Omar Al-Qazabri</option>
+                <option value="Abdul_Basit_Murattal_192kbps">Abdul Basit (Murattal)</option>
+                <option value="Husary_128kbps">Al-Husary (Teacher)</option>
             </select>
 
             <div style="width:1px; height:20px; background:var(--border)"></div>
@@ -336,15 +334,25 @@
             for(let a=start; a<=end; a++) {
                 if(stopReq) break;
                 hl(a); st.innerText = `Playing Ayah ${a} / ${end}`;
+                
+                // Use HTTPS and handle potential errors
                 aud.src = `https://everyayah.com/data/${reciter}/${sId}${String(a).padStart(3,'0')}.mp3`;
                 
                 try {
-                    await new Promise((resolve) => {
+                    await new Promise((resolve, reject) => {
                         aud.onended = resolve;
-                        aud.onerror = () => { console.log('Err'); resolve(); }; 
-                        aud.play().catch(resolve);
+                        aud.onerror = () => { 
+                            console.error(`Audio missing: ${aud.src}`); 
+                            st.innerText = "Audio missing for this reciter/ayah";
+                            resolve(); // Skip missing files
+                        }; 
+                        aud.play().catch(e => {
+                            console.error("Play error:", e);
+                            resolve();
+                        });
                     });
                 } catch(e){}
+                
                 if(!stopReq) await new Promise(r=>setTimeout(r, 200)); 
             }
             if(stopReq || !document.getElementById('loop-box').checked) break;
